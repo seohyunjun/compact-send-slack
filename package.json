@@ -4,11 +4,16 @@
   "description": "MCP server for sending compact prompts and progress to Slack webhook",
   "main": "dist/index.js",
   "type": "module",
+  "bin": {
+    "compact-slack": "./dist/cli.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
-    "cli": "node dist/cli.js"
+    "cli": "node dist/cli.js",
+    "install-global": "npm install -g .",
+    "uninstall-global": "npm uninstall -g compact-send-slack"
   },
   "keywords": ["mcp", "slack", "webhook", "claude"],
   "author": "",

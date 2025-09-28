@@ -5,6 +5,8 @@ import { SlackNotifier } from './slack.js';
 import { CompactPromptFormatter } from './formatter.js';
 import { ProgressTracker } from './progress.js';
 import { CompactPromptData } from './types.js';
+// @ts-ignore
+import { getWebhookUrl, setGlobalConfig, getGlobalConfig } from '../global-config.js';
 
 // Load environment variables
 dotenv.config();
@@ -15,7 +17,7 @@ class SlackCLI {
   private webhookUrl: string;
 
   constructor() {
-    this.webhookUrl = process.env.SLACK_WEBHOOK_URL || '';
+    this.webhookUrl = getWebhookUrl() || '';
     this.progressTracker = new ProgressTracker();
 
     if (this.webhookUrl) {
@@ -27,15 +29,20 @@ class SlackCLI {
     if (webhookUrl) {
       this.webhookUrl = webhookUrl;
       this.slackNotifier = new SlackNotifier(webhookUrl);
+
+      // Save to global config
+      setGlobalConfig({ webhookUrl });
     } else if (!this.webhookUrl) {
-      throw new Error('Webhook URL required. Set SLACK_WEBHOOK_URL in .env or provide as parameter');
+      throw new Error('Webhook URL required. Set SLACK_WEBHOOK_URL in .env, global config, or provide as parameter');
     }
 
     if (sessionId) {
       this.progressTracker = new ProgressTracker(sessionId);
+      setGlobalConfig({ sessionId });
     }
 
     console.log('✅ Slack configured successfully');
+    console.log(`📂 Config saved to: ~/.compact-slack/config.json`);
   }
 
   async sendPrompt(prompt: string, sessionId?: string): Promise<void> {
@@ -202,13 +209,13 @@ async function main() {
       case 'help':
       default:
         console.log(`
-📤 Slack CLI for Claude Code
+📤 Compact Slack CLI for Claude Code
 
 Usage:
-  node dist/cli.js <command> [args...]
+  compact-slack <command> [args...]
 
 Commands:
-  configure [webhookUrl] [sessionId]  Configure Slack webhook
+  configure [webhookUrl] [sessionId]  Configure Slack webhook (saves globally)
   send-prompt <prompt> [sessionId]    Send formatted prompt to Slack
   add-task <taskId> <taskName>        Add task to tracker
   complete-task <taskId>              Complete a task
@@ -218,14 +225,20 @@ Commands:
   reset-progress                      Reset all progress
   help                               Show this help
 
-Environment Variables:
-  SLACK_WEBHOOK_URL                   Default Slack webhook URL
+Configuration Priority:
+  1. Environment variable (SLACK_WEBHOOK_URL)
+  2. Global config (~/.compact-slack/config.json)
+  3. Local .env file
 
 Examples:
-  node dist/cli.js configure "https://hooks.slack.com/..."
-  node dist/cli.js send-prompt "Claude is working on a new feature"
-  node dist/cli.js add-task "task1" "Implement API endpoint"
-  node dist/cli.js complete-task "task1"
+  compact-slack configure "https://hooks.slack.com/..."
+  compact-slack send-prompt "Claude is working on a new feature"
+  compact-slack add-task "task1" "Implement API endpoint"
+  compact-slack complete-task "task1"
+
+Global Installation:
+  npm run install-global    # Install globally
+  npm run uninstall-global  # Uninstall globally
         `);
         break;
     }
